@@ -18,7 +18,7 @@
 # -- END_METADATA ------------------------------------------------------------
 
 #+html: <div align="center">
-#+begin_center 
+#+begin_center
 Syncthing relay & discovery containers for ease of deployment
 #+end_center
 #+html: </div>
@@ -27,12 +27,12 @@ Syncthing relay & discovery containers for ease of deployment
   relay servers  is an absolute  no go. Therefore, it  is necessary to  have a
   quick and easy  deployment of those; isolating them in  containers is a plus
   since they are mostly stateless and require no storage.
-  
+
 * Getting started
-  
+
   Get a local  copy of this repository  and go into one of  the three provided
   folders.
-  
+
 ** Prerequisites
 
    No prerequisites whatsoever, except of course your usual container runtime.
@@ -49,7 +49,7 @@ Syncthing relay & discovery containers for ease of deployment
      git clone git@github.com:chaoticmurder/syncthing.git
      git clone https://github.com/chaoticmurder/syncthing
    #+end_src
-   
+
    Or if you prefer [[https://gitlab.com/][GitLab]].
 
    #+begin_src shell
@@ -59,7 +59,7 @@ Syncthing relay & discovery containers for ease of deployment
 
    Next step  is building the  container from one  of the provided  files. For
    instance, to build a syncthing relay based on Debian :
-   
+
    #+begin_src shell
      podman build --file relay/dist/containerfile-debian --tag syncthing-relay
    #+end_src

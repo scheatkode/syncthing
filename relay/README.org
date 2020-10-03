@@ -1,0 +1,478 @@
+# -- BEGIN_METADATA ----------------------------------------------------------
+#+TITLE:        Containerized Syncthing Relay Server
+#+TITLE:
+#+AUTHOR:       chaoticmurder
+#+EMAIL:        chaoticmurder.git@gmail.com
+#+DESCRIPTION:  A self installing Syncthing Relay Server
+#+STARTUP:      lognoteclock-out
+#+OPTIONS:      html-postamble:nil d:nil num:nil
+#+BABEL:        :cache yes
+#+PROPERTY:     header-args :comments none :results output silent :padline no
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{inconsolata}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc}
+# -- END_METADATA -------------------------------------------------------------
+
+#+html: <p align="center"><img src="../assets/syncthing.png" /></p>
+
+* Usage
+
+  This document follows the principles  of [[https://en.wikipedia.org/wiki/Literate_programming][literate programming]] and, used with
+  emacs'   org-mode   and   org-babel,   generates   multiple   containerfiles
+  (a.k.a.  Dockerfiles)  used  to  build containers  based  on  multiple  base
+  images. These files are already  provided with this document for convenience
+  and can be found under =dist/=.
+
+* Base image
+
+  The  container is  based on  the  following images,  separated in  different
+  =container-*= files.
+
+  - [[https://clearlinux.org/][Clear Linux]] ::
+    For being lightweight, easily maintainable, and self updating.
+
+  - [[https://alpinelinux.org/][Alpine]]	::
+    For being lightweight.
+
+  - [[https://www.debian.org/][Debian]]	::
+    For being notoriously stable.
+
+  #+name: base clearlinux image
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+            FROM clearlinux:latest
+  #+end_src
+
+  #+name: base alpine image
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            FROM alpine:latest
+  #+end_src
+
+  #+name: base debian image
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            FROM debian:stable-slim
+  #+end_src
+
+* Environment
+
+  The following  environment variables  are used to  pass arguments  and alter
+  defaults, and are  provided for convenience and ease  of configuration; feel
+  free to make the necessary changes to suit your needs.
+
+** Settings
+
+   The below  settings are  passed as  arguments to  the =relaysrv=  binary when
+   running the server. These include :
+
+   - SERVER_RELAY_PORT      ::
+     The  exposed port  on which  the server  will be  listening for  incoming
+     connections.
+
+   - SERVER_STATUS_PORT     ::
+     Listen address for  status service (blank to disable);  status service is
+     used by the relay pool for displaying stats.
+
+   - SERVER_DEBUG           ::
+     Enable debug output.
+
+   - SERVER_RATE_GLOBAL     ::
+     Global rate limit, in bytes/s.
+
+   - SERVER_RATE_SESSION    ::
+     Per session rate limit, in bytes/s.
+
+   - SERVER_MESSAGE_TIMEOUT ::
+     Maximum amount of time to wait for messages.
+
+   - SERVER_NETWORK_TIMEOUT ::
+     Timeout for network operations between a client and the relay; if no data
+     is transferred, the connection is terminated.
+
+   - SERVER_PING_INTERVAL   ::
+     How often pings are sent.
+
+   - SERVER_PROVIDED_BY     ::
+     An optional description about who provides the relay.
+
+   - SERVER_POOLS           ::
+     Comma separated  list of relay pool  addresses to join; blank  to disable
+     announcement and remain private.
+
+   - SERVER_OPTS            ::
+     Any extra options that will be passed on to the server.
+
+   #+name: actual settings code
+   #+begin_src dockerfile :tangle no
+             ENV SERVER_RELAY_PORT=22067        \
+                 SERVER_STATUS_PORT=22070       \
+                 SERVER_DEBUG='false'           \
+                 SERVER_RATE_GLOBAL=10000000    \
+                 SERVER_RATE_SESSION=500000     \
+                 SERVER_MESSAGE_TIMEOUT="1m00s" \
+                 SERVER_NETWORK_TIMEOUT="2m00s" \
+                 SERVER_PING_INTERVAL="1m00s"   \
+                 SERVER_PROVIDED_BY=""          \
+                 SERVER_POOLS=""                \
+                 SERVER_OPTS=''
+   #+end_src
+   
+
+   /The above code is a template which is exported as is to the files specified/
+   /hereafter.  This makes sense only if you open the actual text file./
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<actual settings code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<actual settings code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<actual settings code>>
+   #+end_src
+   #+html: </details>
+
+** Setup
+
+   The below variables will be used during the initial setup of the container.
+
+   - USERNAME           ::
+     Self-explanatory, denotes the username to be used.
+
+   - USERHOME           ::
+     Contains the above user's home path.
+
+   - USERGROUP          ::
+     Self-explanatory, newly created user's main group.
+
+   - USERUID            ::
+     The uid to which the user will be bound.
+
+   - USERGID            ::
+     Same as above, but gid.
+
+   - BUILD_REQUIREMENTS ::
+     Packages needed to construct the container at build time.
+
+   #+name: actual setup code
+   #+begin_src dockerfile :tangle no
+             ARG USERNAME="relaysrv"       \
+                 USERHOME="/home/relaysrv" \
+                 USERGROUP="relaysrv"      \
+                 USERUID="1000"            \
+                 USERGID="1000"            \
+                 BUILD_REQUIREMENTS="curl openssl"
+   #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<actual setup code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<actual setup code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<actual setup code>>
+   #+end_src
+   #+html: </details>
+
+** Build time
+
+   To avoid  hardcoding anything in  the script,  the below are  build-time or
+   installation variables.
+
+   - DOWNLOADURL ::
+     Contains the  url to the  GitHub API which will  be used to  retrieve the
+     latest version.
+
+   #+name: actual build time code
+   #+begin_src dockerfile :tangle no
+             ARG DOWNLOADURL="https://api.github.com/repos/syncthing/relaysrv/releases/latest"
+   #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<actual build time code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<actual build time code>>
+   #+end_src
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<actual build time code>>
+   #+end_src
+   #+html: </details>
+
+* Dependency installation
+
+  The build process has a few dependencies, this part updates (/synchronously/),
+  uprades if necessary and installs requirements depending on the base image.
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+            RUN swupd update          \
+                --assume=yes          \
+                --quiet               \
+                --no-progress         \
+                --wait-for-scripts    \
+            && swupd bundle-add       \
+                --assume=yes          \
+                --quiet               \
+                --no-progress         \
+                --wait-for-scripts    \
+                ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            RUN apk --update-cache add ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            ARG DEBIAN_FRONTEND=noninteractive
+
+            RUN apt-get --quiet=2 update       \
+            &&  apt-get --quiet=2              \
+                 --no-install-recommends       \
+                 install ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+* Build
+
+  The below process sets up the  necessary environment and installs the latest
+  =relaysrv= binary.
+
+  #+name: actual installation code
+  #+begin_src dockerfile :tangle no
+            && mkdir --parents ${USERHOME}                                                \
+            && groupadd                                                                   \
+                --system                                                                  \
+                --gid ${USERGID}                                                          \
+                ${USERGROUP}                                                              \
+            && useradd                                                                    \
+                --system                                                                  \
+                --uid ${USERUID}                                                          \
+                --gid ${USERGROUP}                                                        \
+                --home-dir ${USERHOME}                                                    \
+                --password "$(openssl rand 4096 | openssl sha512 | awk '{print $2}')"     \
+                ${USERNAME}                                                               \
+            && chown                                                                      \
+                --recursive                                                               \
+                ${USERNAME}:${USERGROUP}                                                  \
+                ${USERHOME}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual installation code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual installation code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual installation code>>
+  #+end_src
+  #+html: </details>
+
+* Install
+
+  This  is the  main  installation  part. It  fetches  the  latest build  URI,
+  downloads and stores it in the newly created user's home directory for later
+  use.
+
+  #+name: actual installation code
+  #+begin_src dockerfile :tangle no
+            WORKDIR /tmp/
+            RUN curl --silent ${DOWNLOADURL}                               \
+                | awk '/browser_download_url.*linux.*amd64/ {print $NF}'   \
+                | tr --delete \"                                           \
+                | xargs curl                                               \
+                    --fail                                                 \
+                    --location                                             \
+                    --silent                                               \
+                    --retry 999                                            \
+                    --retry-max-time 0                                     \
+                    --continue-at -                                        \
+                    --output relaysrv.tgz                                  \
+                && tar                                                     \
+                    --extract                                              \
+                    --gzip                                                 \
+                    --file relaysrv.tgz                                    \
+                && mkdir ${USERHOME}/{server,certs,db}                     \
+                && cp    *relaysrv*/*relaysrv* ${USERHOME}/server/relaysrv \
+                && rm    --recursive --force *relaysrv*                    \
+                && chown --recursive ${USERNAME}:${USERGROUP} ${USERHOME}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual installation code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual installation code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual installation code>>
+  #+end_src
+  #+html: </details>
+
+* Cleanup
+
+  This part,  depending on the  base image,  cleans up the  package repository
+  index and stale files to keep the container footprint to a minimum.
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+         RUN swupd bundle-remove \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --recursive           \
+           --force               \
+           ${BUILD_REQUIREMENTS} \
+         && swupd bundle-remove  \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --orphans             \
+         && swupd clean          \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --all
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            RUN apk del ${BUILD_REQUIREMENTS}              \
+                && rm --recursive --force /var/cache/apk/* \
+                && rm --recursive --force /tmp/*
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            RUN apt-get --auto-remove --quiet=2 purge ${BUILD_REQUIREMENTS} \
+                && rm -Rf /var/lib/apt/lists/*                              \
+                && rm -Rf /tmp/*
+  #+end_src
+
+* Listening port
+
+  Expose the previously specified listen port.
+
+  #+name: actual listening code
+  #+begin_src dockerfile :tangle no
+            EXPOSE ${SERVER_RELAY_PORT}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual listening code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual listening code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual listening code>>
+  #+end_src
+  #+html: </details>
+
+* Run as user
+
+  Specify the newly created user to run the starting command as.
+
+  #+name: actual runas code
+  #+begin_src dockerfile :tangle no
+            USER ${USERNAME}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual runas code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual runas code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual runas code>>
+  #+end_src
+  #+html: </details>
+
+* Volume exporting
+
+  Specifying the =certs/=  folder to export as  a volume since this  is the only
+  part that is not renewable without issues.
+
+  #+name: actual volume export code
+  #+begin_src dockerfile :tangle no
+            VOLUME ${USERHOME}/certs
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual volume export code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual volume export code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual volume export code>>
+  #+end_src
+  #+html: </details>
+
+* Start command
+
+  Finally, the command to spawn the server, using =CMD= instead of =ENTRYPOINT= to
+  keep the whole thing easily readable.
+
+  #+name: actual start command code
+  #+begin_src dockerfile :tangle no
+            CMD ${USERHOME}/server/relaysrv                         \
+                $([ "${SERVER_DEBUG}" = "false" ] || echo "-debug") \
+                -listen           ":${SERVER_RELAY_PORT}"           \
+                -status-srv       ":${SERVER_STATUS_PORT}"          \
+                -global-rate      "${SERVER_RATE_GLOBAL}"           \
+                -per-session-rate "${SERVER_RATE_SESSION}"          \
+                -message-timeout  "${SERVER_MESSAGE_TIMEOUT}"       \
+                -network-timeout  "${SERVER_NETWORK_TIMEOUT}"       \
+                -ping-interval    "${SERVER_PING_INTERVAL}"         \
+                -provided-by      "${SERVER_PROVIDED_BY}"           \
+                -pools            "${SERVER_POOLS}"                 \
+                -keys             "${USERHOME}/certs/"              \
+                ${SERVER_OPTS}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<actual start command code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<actual start command code>>
+  #+end_src
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<actual start command code>>
+  #+end_src
+  #+html: </details>
