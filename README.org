@@ -1,0 +1,75 @@
+# -- BEGIN_METADATA ----------------------------------------------------------
+#+TITLE:        Syncthing containers
+#+TITLE:
+#+AUTHOR:       chaoticmurder
+#+EMAIL:        chaoticmurder.git@gmail.com
+#+DESCRIPTION:  Syncthing relay & discovery containers for ease of deployment
+#+STARTUP:      latexpreview
+#+OPTIONS:      html-postamble:nil d:nil num:nil
+#+BABEL:        :cache yes
+#+PROPERTY:     header-args :comments none :results output silent :padline no
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{mathtools}
+#+LATEX_HEADER: \usepackage{amsmath}
+#+LATEX_HEADER: \usepackage{amsfonts}
+#+LATEX_HEADER: \usepackage{amssymb}
+#+LATEX_HEADER: \usepackage{inconsolata}
+#+LATEX_HEADER: \usepackage[utf8]{inputenc}
+# -- END_METADATA ------------------------------------------------------------
+
+#+html: <div align="center">
+#+begin_center 
+Syncthing relay & discovery containers for ease of deployment
+#+end_center
+#+html: </div>
+
+  If you  are as paranoid  as I am, using  the syncthing global  discovery and
+  relay servers  is an absolute  no go. Therefore, it  is necessary to  have a
+  quick and easy  deployment of those; isolating them in  containers is a plus
+  since they are mostly stateless and require no storage.
+  
+* Getting started
+  
+  Get a local  copy of this repository  and go into one of  the three provided
+  folders.
+  
+** Prerequisites
+
+   No prerequisites whatsoever, except of course your usual container runtime.
+
+** Installation & usage
+
+   Simply [[https://docs.docker.com/engine/reference/commandline/build/][build]] your own containers with  the provided files; the build process
+   makes sure  only the latest  binary is  installed, which means  updating the
+   container requires rebuilding it.
+
+   That being said, clone the repository.
+
+   #+begin_src shell
+     git clone git@github.com:chaoticmurder/syncthing.git
+     git clone https://github.com/chaoticmurder/syncthing
+   #+end_src
+   
+   Or if you prefer [[https://gitlab.com/][GitLab]].
+
+   #+begin_src shell
+     git clone git@gitlab.com:chaoticmurder/syncthing.git
+     git clone https://gitlab.com/chaoticmurder/syncthing
+   #+end_src
+
+   Next step  is building the  container from one  of the provided  files. For
+   instance, to build a syncthing relay based on Debian :
+   
+   #+begin_src shell
+     podman build --file relay/dist/containerfile-debian --tag syncthing-relay
+   #+end_src
+
+   If you use Docker (/shame on you/) :
+
+   #+begin_src shell
+     docker build --file relay/dist/containerfile-debian --tag syncthing-relay
+   #+end_src
+
+* Contributing
+
+  Feel free to modify or contribute however you want.
