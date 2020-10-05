@@ -17,6 +17,8 @@
 #+LATEX_HEADER: \usepackage[utf8]{inputenc}
 # -- END_METADATA ------------------------------------------------------------
 
+#+html: <p align="center"><img src="assets/syncthing.png" /></p>
+
 #+html: <div align="center">
 #+begin_center
 Syncthing relay & discovery containers for ease of deployment
