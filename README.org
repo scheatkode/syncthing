@@ -9,10 +9,6 @@
 #+BABEL:        :cache yes
 #+PROPERTY:     header-args :comments none :results output silent :padline no
 #+LATEX_HEADER: \usepackage{parskip}
-#+LATEX_HEADER: \usepackage{mathtools}
-#+LATEX_HEADER: \usepackage{amsmath}
-#+LATEX_HEADER: \usepackage{amsfonts}
-#+LATEX_HEADER: \usepackage{amssymb}
 #+LATEX_HEADER: \usepackage{inconsolata}
 #+LATEX_HEADER: \usepackage[utf8]{inputenc}
 # -- END_METADATA ------------------------------------------------------------
@@ -25,19 +21,27 @@ Syncthing relay & discovery containers for ease of deployment
 #+end_center
 #+html: </div>
 
-  If you  are as paranoid  as I am, using  the syncthing global  discovery and
-  relay servers  is an absolute  no go. Therefore, it  is necessary to  have a
-  quick and easy  deployment of those; isolating them in  containers is a plus
-  since they are mostly stateless and require no storage.
+If you are as paranoid as I am, using the syncthing global discovery and relay
+servers is an absolute  no go. Therefore, it is necessary to  have a quick and
+easy deployment  of those; isolating them  in containers is a  plus since they
+are mostly stateless and require close to no storage.
+
+This whole repository  is an application of [[https://en.wikipedia.org/wiki/Literate_programming][literate  programming]] using emacs'
+[[https://orgmode.org/][org-mode]] and  [[https://orgmode.org/worg/org-contrib/babel/][org-babel]] to generate code  along with the documentation  from a
+single  file  (the process  is  called  /tangling/).   The  very basic  idea  is
+/“Documentation first,  code after”/, forcing  /lazy little shits/ like  myself to
+write the  documentation beforehand, which  helps having  a clear idea  of the
+resulting code.
 
 * Getting started
-
-  Get a local  copy of this repository  and go into one of  the three provided
+  
+  Grab a local copy  of this repository and go into one  of the three provided
   folders.
 
 ** Prerequisites
 
-   No prerequisites whatsoever, except of course your usual container runtime.
+   No  prerequisites  whatsoever  except,  of  course,  your  usual  container
+   runtime.
 
 ** Installation & usage
 
