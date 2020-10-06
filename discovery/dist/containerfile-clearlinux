@@ -1,15 +1,15 @@
 FROM clearlinux:latest
-ENV SERVER_DISCOVERY_PORT=8443     \
-    SERVER_METRICS_PORT='disabled' \
-    SERVER_DEBUG='false'           \
-    SERVER_HTTP='false'            \
-    SERVER_OPTS=''
-ARG USERNAME="discosrv"       \
-    USERHOME="/home/discosrv" \
-    USERGROUP="discosrv"      \
-    USERUID="1000"            \
-    USERGID="1000"            \
-    BUILD_REQUIREMENTS="curl openssl"
+ENV SERVER_DISCOVERY_PORT=8443 \
+SERVER_METRICS_PORT='disabled' \
+SERVER_DEBUG='false' \
+SERVER_HTTP='false' \
+SERVER_OPTS=''
+ARG USERNAME="discosrv" \
+USERHOME="/home/discosrv" \
+USERGROUP="discosrv" \
+USERUID="1000" \
+USERGID="1000" \
+BUILD_REQUIREMENTS="curl openssl"
 ARG DOWNLOADURL="https://api.github.com/repos/syncthing/discosrv/releases/latest"
 RUN swupd update          \
     --assume=yes          \
@@ -22,38 +22,23 @@ RUN swupd update          \
     --no-progress         \
     --wait-for-scripts    \
     ${BUILD_REQUIREMENTS} \
-&& mkdir --parents ${USERHOME}                                                \
-&& groupadd                                                                   \
-    --system                                                                  \
-    --gid ${USERGID}                                                          \
-    ${USERGROUP}                                                              \
-&& useradd                                                                    \
-    --system                                                                  \
-    --uid ${USERUID}                                                          \
-    --gid ${USERGROUP}                                                        \
-    --home-dir ${USERHOME}                                                    \
-    --password "$(openssl rand 4096 | openssl sha512 | awk '{print $2}')"     \
-    ${USERNAME}                                                               \
-&& chown                                                                      \
-    --recursive                                                               \
-    ${USERNAME}:${USERGROUP}                                                  \
-    ${USERHOME}
-&& mkdir --parents ${USERHOME}                                                \
-&& groupadd                                                                   \
-    --system                                                                  \
-    --gid ${USERGID}                                                          \
-    ${USERGROUP}                                                              \
-&& useradd                                                                    \
-    --system                                                                  \
-    --uid ${USERUID}                                                          \
-    --gid ${USERGROUP}                                                        \
-    --home-dir ${USERHOME}                                                    \
-    --password "$(openssl rand 4096 | openssl sha512 | awk '{print $2}')"     \
-    ${USERNAME}                                                               \
-&& chown                                                                      \
-    --recursive                                                               \
-    ${USERNAME}:${USERGROUP}                                                  \
-    ${USERHOME}
+
+&& mkdir --parents ${USERHOME} \
+&& groupadd          \
+    --system         \
+    --gid ${USERGID} \
+    ${USERGROUP}     \
+&& useradd                  \
+    --system                \
+    --uid      ${USERUID}   \
+    --gid      ${USERGROUP} \
+    --home-dir ${USERHOME}  \
+    --password "$(
+        openssl rand 4096
+        | openssl sha512
+        | awk '{print $2}'
+        )"                  \
+    ${USERNAME}             \
 RUN swupd bundle-remove \
   --quiet               \
   --no-progress         \

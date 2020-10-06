@@ -1,21 +1,20 @@
 FROM clearlinux:latest
-ENV SERVER_RELAY_PORT=22067            \
-    SERVER_STATUS_PORT=22070           \
-    SERVER_DEBUG='false'               \
-    SERVER_RATE_GLOBAL=10000000        \
-    SERVER_RATE_SESSION=500000         \
-    SERVER_MESSAGE_TIMEOUT="1m45s"     \
-    SERVER_NETWORK_TIMEOUT="3m30s"     \
-    SERVER_PING_INTERVAL="1m15s"       \
-    SERVER_PROVIDED_BY="chaoticmurder" \
-    SERVER_POOLS=""                    \
-    SERVER_OPTS=''
-ARG USERNAME="relaysrv"       \
-    USERHOME="/home/relaysrv" \
-    USERGROUP="relaysrv"      \
-    USERUID="1000"            \
-    USERGID="1000"            \
-    BUILD_REQUIREMENTS="curl openssl"
+ENV SERVER_RELAY_PORT=22067 \
+SERVER_STATUS_PORT=22070 \
+SERVER_RATE_GLOBAL=10000000 \
+SERVER_RATE_SESSION=500000 \
+SERVER_MESSAGE_TIMEOUT="1m00s" \
+SERVER_NETWORK_TIMEOUT="2m00s" \
+SERVER_PING_INTERVAL="1m00s" \
+SERVER_PROVIDED_BY="" \
+SERVER_POOLS="" \
+SERVER_OPTS=''
+ARG USERNAME="relaysrv" \
+USERHOME="/home/relaysrv" \
+USERGROUP="relaysrv" \
+USERUID="1000" \
+USERGID="1000" \
+BUILD_REQUIREMENTS="curl openssl"
 ARG DOWNLOADURL="https://api.github.com/repos/syncthing/relaysrv/releases/latest"
 RUN swupd update          \
     --assume=yes          \
@@ -28,6 +27,7 @@ RUN swupd update          \
     --no-progress         \
     --wait-for-scripts    \
     ${BUILD_REQUIREMENTS} \
+
 && mkdir --parents ${USERHOME}                                                \
 && groupadd                                                                   \
     --system                                                                  \
@@ -38,28 +38,12 @@ RUN swupd update          \
     --uid ${USERUID}                                                          \
     --gid ${USERGROUP}                                                        \
     --home-dir ${USERHOME}                                                    \
-    --password "$(openssl rand 4096 | openssl sha512 | awk '{print $2}')"     \
+    --password "$(
+        openssl rand 4096
+        | openssl sha512
+        | awk '{print $2}'
+        )"                  \
     ${USERNAME}                                                               \
-&& chown                                                                      \
-    --recursive                                                               \
-    ${USERNAME}:${USERGROUP}                                                  \
-    ${USERHOME}
-&& mkdir --parents ${USERHOME}                                                \
-&& groupadd                                                                   \
-    --system                                                                  \
-    --gid ${USERGID}                                                          \
-    ${USERGROUP}                                                              \
-&& useradd                                                                    \
-    --system                                                                  \
-    --uid ${USERUID}                                                          \
-    --gid ${USERGROUP}                                                        \
-    --home-dir ${USERHOME}                                                    \
-    --password "$(openssl rand 4096 | openssl sha512 | awk '{print $2}')"     \
-    ${USERNAME}                                                               \
-&& chown                                                                      \
-    --recursive                                                               \
-    ${USERNAME}:${USERGROUP}                                                  \
-    ${USERHOME}
 RUN swupd bundle-remove \
   --quiet               \
   --no-progress         \
@@ -80,19 +64,19 @@ RUN swupd bundle-remove \
   --wait-for-scripts    \
   --assume=yes          \
   --all
-EXPOSE ${SERVER_PORT}
+EXPOSE ${SERVER_RELAY_PORT}
 USER ${USERNAME}
 VOLUME ${USERHOME}/certs
-CMD ${USERHOME}/server/relaysrv                              \
-    $([ "${DEBUG}" = "false" ] && echo " " || echo "-debug") \
-    -listen           ":${SERVER_RELAY_PORT}"                \
-    -status-srv       ":${SERVER_STATUS_PORT}"               \
-    -global-rate      "${SERVER_RATE_GLOBAL}"                \
-    -per-session-rate "${SERVER_RATE_SESSION}"               \
-    -message-timeout  "${SERVER_MESSAGE_TIMEOUT}"            \
-    -network-timeout  "${SERVER_NETWORK_TIMEOUT}"            \
-    -ping-interval    "${SERVER_PING_INTERVAL}"              \
-    -provided-by      "${SERVER_PROVIDED_BY}"                \
-    -pools            "${SERVER_POOLS}"                      \
-    -keys             "${USERHOME}/certs/"                   \
+CMD ${USERHOME}/server/relaysrv                         \
+    $([ "${SERVER_DEBUG}" = "false" ] || echo "-debug") \
+    -listen           ":${SERVER_RELAY_PORT}"           \
+    -status-srv       ":${SERVER_STATUS_PORT}"          \
+    -global-rate      "${SERVER_RATE_GLOBAL}"           \
+    -per-session-rate "${SERVER_RATE_SESSION}"          \
+    -message-timeout  "${SERVER_MESSAGE_TIMEOUT}"       \
+    -network-timeout  "${SERVER_NETWORK_TIMEOUT}"       \
+    -ping-interval    "${SERVER_PING_INTERVAL}"         \
+    -provided-by      "${SERVER_PROVIDED_BY}"           \
+    -pools            "${SERVER_POOLS}"                 \
+    -keys             "${USERHOME}/certs/"              \
     ${SERVER_OPTS}
