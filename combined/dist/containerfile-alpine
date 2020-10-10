@@ -1,0 +1,49 @@
+FROM alpine:latest
+ENV SERVER_DISCOVERY_PORT=8443 \
+SERVER_RELAY_PORT=22067 \
+SERVER_DISCOVERY_METRICS_PORT='disabled' \
+SERVER_RELAY_STATUS_PORT=22070 \
+SERVER_DEBUG='false' \
+SERVER_HTTP='false' \
+SERVER_RELAY_RATE_GLOBAL=10000000 \
+SERVER_RELAY_RATE_SESSION=500000 \
+SERVER_RELAY_MESSAGE_TIMEOUT="1m00s" \
+SERVER_RELAY_NETWORK_TIMEOUT="2m00s" \
+SERVER_RELAY_PING_INTERVAL="1m00s" \
+SERVER_PROVIDED_BY="" \
+SERVER_RELAY_POOLS="" \
+SERVER_DISCOVERY_OPTS=''
+ARG USERNAME="srv" \
+USERHOME="/home/srv" \
+USERGROUP="srv" \
+USERUID="1000" \
+USERGID="1000" \
+BUILD_REQUIREMENTS="curl openssl"
+ARG DISCOSRVURL="https://api.github.com/repos/syncthing/discosrv/releases/latest" \
+    RELAYSRVURL="https://api.github.com/repos/syncthing/relaysrv/releases/latest"
+RUN apk --update-cache add ${BUILD_REQUIREMENTS} \
+
+&& mkdir --parents ${USERHOME} \
+&& groupadd          \
+    --system         \
+    --gid ${USERGID} \
+    ${USERGROUP}     \
+&& useradd                  \
+    --system                \
+    --uid      ${USERUID}   \
+    --gid      ${USERGROUP} \
+    --home-dir ${USERHOME}  \
+    --password "$(
+        openssl rand 4096
+        | openssl sha512
+        | awk '{print $2}'
+        )"                  \
+    ${USERNAME}             \
+RUN apk del ${BUILD_REQUIREMENTS}              \
+    && rm --recursive --force /var/cache/apk/* \
+    && rm --recursive --force /tmp/*
+EXPOSE ${SERVER_DISCOVERY_PORT}
+USER ${USERNAME}
+VOLUME ${USERHOME}/certs
+COPY entrypoint.sh ${USERHOME}/
+CMD ${USERHOME}/entrypoint.sh

@@ -1,0 +1,860 @@
+# -- BEGIN_METADATA ----------------------------------------------------------
+#+TITLE:        Containerized Syncthing Relay & Discovery Server
+#+TITLE:
+#+AUTHOR:       chaoticmurder
+#+EMAIL:        chaoticmurder.git@gmail.com
+#+DESCRIPTION:  A self installing Syncthing Relay & Discovery Server
+#+PROPERTY:     header-args :comments none :results output silent :padline no
+# -- END_METADATA -------------------------------------------------------------
+
+#+html: <p align="center"><img src="../assets/syncthing.png" /></p>
+
+* Usage
+
+  This document follows the principles  of [[https://en.wikipedia.org/wiki/Literate_programming][literate programming]] and, used with
+  emacs'   org-mode   and   org-babel,   generates   multiple   containerfiles
+  (a.k.a.  Dockerfiles)  used  to  build containers  based  on  multiple  base
+  images. These files are already  provided with this document for convenience
+  and can be found under =dist/=.
+
+* Base image
+
+  The  container is  based on  the  following images,  separated in  different
+  =container-*= files.
+
+  - [[https://clearlinux.org/][Clear Linux]] ::
+    For being lightweight, easily maintainable, and self updating.
+
+  #+name: base clearlinux image
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+            FROM clearlinux:latest
+  #+end_src
+
+  - [[https://alpinelinux.org/][Alpine]] ::
+    For being lightweight.
+
+  #+name: base alpine image
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            FROM alpine:latest
+  #+end_src
+
+  - [[https://www.debian.org/][Debian]] ::
+    For being notoriously stable.
+
+  #+name: base debian image
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            FROM debian:stable-slim
+  #+end_src
+
+* Environment
+
+  The following  environment variables  are used to  pass arguments  and alter
+  defaults, and are  provided for convenience and ease  of configuration; feel
+  free to make the necessary changes to suit your needs.
+
+** Settings
+
+   The below  settings are passed  as arguments  to the =discosrv=  and =relaysrv=
+   binaries when running the container. These include :
+
+   - SERVER_DISCOVERY_PORT ::
+     The exposed  port on  which the  discovery server  will be  listening for
+     incoming connections.
+
+   #+name: specify server discovery port
+   #+begin_src dockerfile :tangle no
+             ENV SERVER_DISCOVERY_PORT=8443 \
+   #+end_src
+
+   - SERVER_RELAY_PORT ::
+     The exposed port on which the relay server will be listening for incoming
+     connections.
+
+   #+name: specify server relay port
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_PORT=22067 \
+   #+end_src
+
+   - SERVER_DISCOVERY_METRICS_PORT ::
+     Prometheus compatible metrics endpoint listen address.
+
+   #+name: specify server discovery metrics port
+   #+begin_src dockerfile :tangle no
+             SERVER_DISCOVERY_METRICS_PORT='disabled' \
+   #+end_src
+
+   - SERVER_RELAY_STATUS_PORT ::
+     Listen address for  status service (blank to disable);  status service is
+     used by the relay pool for displaying stats.
+
+   #+name: specify server relay status port
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_STATUS_PORT=22070 \
+   #+end_src
+
+   - SERVER_DEBUG ::
+     Enable debug output.
+
+   #+name: specify server debug
+   #+begin_src dockerfile :tangle no
+             SERVER_DEBUG='false' \
+   #+end_src
+
+   - SERVER_DISCOVERY_HTTP ::
+     Specifies  whether to  listen using  /only/ HTTP  for use  behind a
+     reverse proxy.
+
+   #+name: specify server discovery http
+   #+begin_src dockerfile :tangle no
+             SERVER_HTTP='false' \
+   #+end_src
+
+   - SERVER_RELAY_RATE_GLOBAL ::
+     Global rate limit, in bytes/s.
+
+   #+name: specify server relay global rate
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_RATE_GLOBAL=10000000 \
+   #+end_src
+
+   - SERVER_RELAY_RATE_SESSION ::
+     Per session rate limit, in bytes/s.
+
+   #+name: specify relay per session rate
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_RATE_SESSION=500000 \
+   #+end_src
+
+   - SERVER_RELAY_MESSAGE_TIMEOUT ::
+     Maximum amount of time to wait for messages.
+
+   #+name: specify server relay message timeout
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_MESSAGE_TIMEOUT="1m00s" \
+   #+end_src
+
+   - SERVER_RELAY_NETWORK_TIMEOUT ::
+     Timeout for network operations between a client and the relay; if no data
+     is transferred, the connection is terminated.
+
+   #+name: specify server relay network timeout
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_NETWORK_TIMEOUT="2m00s" \
+   #+end_src
+
+   - SERVER_RELAY_PING_INTERVAL ::
+     How often pings are sent.
+
+   #+name: specify server relay ping interval
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_PING_INTERVAL="1m00s" \
+   #+end_src
+
+   - SERVER_PROVIDED_BY ::
+     An optional description about who provides the relay.
+
+   #+name: specify provided by
+   #+begin_src dockerfile :tangle no
+             SERVER_PROVIDED_BY="" \
+   #+end_src
+
+   - SERVER_RELAY_POOLS ::
+     Comma separated  list of relay pool  addresses to join; blank  to disable
+     announcement and remain private.
+
+   #+name: specify server relay pools
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_POOLS="" \
+   #+end_src
+
+   - SERVER_DISCOVERY_OPTS ::
+     Any extra options that will be passed on to the discovery server.
+
+   #+name: specify server options
+   #+begin_src dockerfile :tangle no
+             SERVER_DISCOVERY_OPTS=''
+   #+end_src
+
+   - SERVER_RELAY_OPTS ::
+     Any extra options that will be passed on to the relay server.
+
+   #+name: specify server options
+   #+begin_src dockerfile :tangle no
+             SERVER_RELAY_OPTS=''
+   #+end_src
+
+   /The above code is a template which is exported as is to the files specified/
+   /hereafter.  This makes sense only if you open the actual text file./
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export template :
+
+   #+name: settings code template
+   #+begin_src dockerfile :tangle no :noweb yes
+             <<specify server discovery port>>
+             <<specify server relay port>>
+             <<specify server discovery metrics port>>
+             <<specify server relay status port>>
+             <<specify server debug>>
+             <<specify server discovery http>>
+             <<specify server relay global rate>>
+             <<specify relay per session rate>>
+             <<specify server relay message timeout>>
+             <<specify server relay network timeout>>
+             <<specify server relay ping interval>>
+             <<specify provided by>>
+             <<specify server relay pools>>
+             <<specify server options>>
+   #+end_src
+
+   Export code for Clear Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<settings code template>>
+   #+end_src
+
+   Export code for Alpine Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<settings code template>>
+   #+end_src
+
+   Export code for Debian :
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<settings code template>>
+   #+end_src
+   #+html: </details>
+
+** Setup
+
+   The below variables will be used during the initial setup of the container.
+
+   - USERNAME ::
+     Self-explanatory, denotes the username to be used.
+
+   #+name: specify user name
+   #+begin_src dockerfile :tangle no
+             ARG USERNAME="srv" \
+   #+end_src
+
+   - USERHOME ::
+     Contains the above user's home path.
+
+   #+name: specify user home
+   #+begin_src dockerfile :tangle no
+             USERHOME="/home/srv" \
+ #+end_src
+
+   - USERGROUP ::
+     Self-explanatory, newly created user's main group.
+
+   #+name: specify user group
+   #+begin_src dockerfile :tangle no
+             USERGROUP="srv" \
+   #+end_src
+
+   - USERUID ::
+     The UID to which the user will be bound.
+
+   #+name: specify user identifier
+   #+begin_src dockerfile :tangle no
+             USERUID="1000" \
+   #+end_src
+
+   - USERGID ::
+     Same as above, but GID.
+
+   #+name: specify user group identifier
+   #+begin_src dockerfile :tangle no
+             USERGID="1000" \
+   #+end_src
+
+   - BUILD_REQUIREMENTS ::
+     Packages needed to construct the container at build time.
+
+   #+name: specify build requirements
+   #+begin_src dockerfile :tangle no
+             BUILD_REQUIREMENTS="curl openssl"
+   #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export template :
+
+   #+name: setup code template
+   #+begin_src dockerfile :tangle no :noweb yes
+             <<specify user name>>
+             <<specify user home>>
+             <<specify user group>>
+             <<specify user identifier>>
+             <<specify user group identifier>>
+             <<specify build requirements>>
+   #+end_src
+
+   Export code for Clear Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<setup code template>>
+   #+end_src
+
+   Export code for Alpine Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<setup code template>>
+   #+end_src
+
+   Export code for Debian :
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<setup code template>>
+   #+end_src
+   #+html: </details>
+
+** Build time
+
+   To avoid  hard-coding anything in the  script, the below are  build-time or
+   installation variables.
+
+   - DOWNLOADURL ::
+     Contains the  URI to the  GitHub API which will  be used to  retrieve the
+     latest version.
+
+   #+name: specify build time variables
+   #+begin_src dockerfile :tangle no
+             ARG DISCOSRVURL="https://api.github.com/repos/syncthing/discosrv/releases/latest" \
+                 RELAYSRVURL="https://api.github.com/repos/syncthing/relaysrv/releases/latest"
+   #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<specify build time variables>>
+   #+end_src
+
+   Export code for Alpine Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<specify build time variables>>
+   #+end_src
+
+   Export code for Debian :
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<specify build time variables>>
+   #+end_src
+   #+html: </details>
+* Dependency installation
+
+  The build process has a few dependencies, this part updates (/synchronously/),
+  upgrades if necessary and installs requirements depending on the base image.
+
+  Clear Linux's package manager is [[https://github.com/clearlinux/swupd-client][swupd]] :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+            RUN swupd update          \
+                --assume=yes          \
+                --quiet               \
+                --no-progress         \
+                --wait-for-scripts    \
+            && swupd bundle-add       \
+                --assume=yes          \
+                --quiet               \
+                --no-progress         \
+                --wait-for-scripts    \
+                ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+  Alpine Linux comes with [[https://gitlab.alpinelinux.org/alpine/apk-tools][apk]] :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            RUN apk --update-cache add ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+  Debian boasts the timeless [[https://salsa.debian.org/apt-team/apt][apt-get]] :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            ARG DEBIAN_FRONTEND=noninteractive
+            RUN apt-get --quiet=2 update       \
+            &&  apt-get --quiet=2              \
+                 --no-install-recommends       \
+                 install ${BUILD_REQUIREMENTS} \
+  #+end_src
+
+* Build
+
+  The below process sets up the  necessary environment and installs the latest
+  =discosrv= and =relaysrv= binary; this step  is grouped with the previous in the
+  same build layer since these operations take very little time and space.
+
+  First, create the necessary directory tree :
+
+  #+name: create directory tree
+  #+begin_src dockerfile :tangle no
+            && mkdir --parents ${USERHOME} \
+  #+end_src
+
+  Then create the group that will be bound to the user :
+
+  #+name: create system group
+  #+begin_src dockerfile :tangle no
+            && groupadd          \
+                --system         \
+                --gid ${USERGID} \
+                ${USERGROUP}     \
+  #+end_src
+
+  Furthermore, create the  system user with the given IDs  and home directory,
+  bind it to the previously created group and generate a password on the fly :
+
+  #+name: create system user
+  #+begin_src dockerfile :tangle no
+            && useradd                  \
+                --system                \
+                --uid      ${USERUID}   \
+                --gid      ${USERGROUP} \
+                --home-dir ${USERHOME}  \
+                --password "$(
+                    openssl rand 4096
+                    | openssl sha512
+                    | awk '{print $2}'
+                    )"                  \
+                ${USERNAME}             \
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export template :
+
+   #+name: installation template
+   #+begin_src dockerfile :tangle no :noweb yes
+             <<create directory tree>>
+             <<create system group>>
+             <<create system user>>
+   #+end_src
+
+   Export code for Clear Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<installaton template>>
+   #+end_src
+
+   Export code for Alpine Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<installaton template>>
+   #+end_src
+
+   Export code for Debian :
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<installaton template>>
+   #+end_src
+   #+html: </details>
+
+* Install
+
+  This  is the  main  installation  part. It  fetches  the  latest build  URI,
+  downloads and stores it in the newly created user's home directory for later
+  use.
+
+  First, use the ~/tmp/~ folder to keep the file system clean.
+
+  #+name: specify temporary working directory
+  #+begin_src dockerfile :tangle no
+            WORKDIR /tmp/
+  #+end_src
+
+  Next,  fetch the  latest version  URI  and use  it to  download the  archive
+  containing the binary, giving it a consistent name along the way.
+
+  #+name: download latest discosrv binary
+  #+begin_src dockerfile :tangle no
+            RUN curl --silent ${DISCOSRVURL}                             \
+                | awk '/browser_download_url.*linux.*amd64/ {print $NF}' \
+                | tr --delete \"                                         \
+                | xargs curl                                             \
+                    --fail                                               \
+                    --location                                           \
+                    --silent                                             \
+                    --retry 999                                          \
+                    --retry-max-time 0                                   \
+                    --continue-at -                                      \
+                    --output discosrv.tgz                                \
+  #+end_src
+
+  Same for =relaysrv=.
+
+  #+name: download latest relaysrv binary
+  #+begin_src dockerfile :tangle no
+            &&  curl --silent ${RELAYSRVURL}                             \
+                | awk '/browser_download_url.*linux.*amd64/ {print $NF}' \
+                | tr --delete \"                                         \
+                | xargs curl                                             \
+                    --fail                                               \
+                    --location                                           \
+                    --silent                                             \
+                    --retry 999                                          \
+                    --retry-max-time 0                                   \
+                    --continue-at -                                      \
+                    --output relaysrv.tgz                                \
+  #+end_src
+
+  Then, extract the archive contents to the current folder.
+
+  #+name: extract discosrv archive contents
+  #+begin_src dockerfile :tangle no
+            && tar                  \
+                --extract           \
+                --gzip              \
+                --file discosrv.tgz \
+  #+end_src
+
+  Same process for =relaysrv=.
+
+  #+name: extract relaysrv archive contents
+  #+begin_src dockerfile :tangle no
+            && tar                  \
+                --extract           \
+                --gzip              \
+                --file relaysrv.tgz \
+  #+end_src
+
+  Furthermore,  create  categorized  directories  for  each  of  the  server's
+  necessary files.
+
+  #+name: create server directories
+  #+begin_src dockerfile :tangle no
+            && mkdir ${USERHOME}/{server,certs,db} \
+  #+end_src
+
+  Additionally, copy the uncompressed binary to the newly created folders.
+
+  #+name: copy binary files
+  #+begin_src dockerfile :tangle no
+            && cp    *discosrv*/*discosrv* ${USERHOME}/server/discosrv \
+            && cp    *relaysrv*/*relaysrv* ${USERHOME}/server/relaysrv \
+  #+end_src
+
+  Clean up the archive and its uncompressed contents for good measure.
+
+  #+name: cleanup archive stale files
+  #+begin_src dockerfile :tangle no
+            && rm    --recursive --force *discosrv* *relaysrv* \
+  #+end_src
+
+  Finally, fix the resulting folder hierarchy permissions.
+
+  #+name: fix permissions
+  #+begin_src dockerfile :tangle no
+            && chown --recursive ${USERNAME}:${USERGROUP} ${USERHOME}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export template :
+
+   #+name: installation template
+   #+begin_src dockerfile :tangle no :noweb yes
+             <<specify temporary working directory>>
+             <<download latest discosrv binary>>
+             <<download latest relaysrv binary>>
+             <<extract discosrv archive contents>>
+             <<extract relaysrv archive contents>>
+             <<create server directories>>
+             <<copy binary files>>
+             <<cleanup archive stale files>>
+             <<fix permissions>>
+   #+end_src
+
+   Export code for Clear Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+             <<installation template>>
+   #+end_src
+
+   Export code for Alpine Linux :
+
+   #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+             <<installation template>>
+   #+end_src
+
+   Export code for Debian :
+
+   #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+             <<installation template>>
+   #+end_src
+  #+html: </details>
+* Cleanup
+
+  This part,  depending on the  base image,  cleans up the  package repository
+  index and stale files to keep the container footprint to a minimum.
+
+  For Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux
+         RUN swupd bundle-remove \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --recursive           \
+           --force               \
+           ${BUILD_REQUIREMENTS} \
+         && swupd bundle-remove  \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --orphans             \
+         && swupd clean          \
+           --quiet               \
+           --no-progress         \
+           --wait-for-scripts    \
+           --assume=yes          \
+           --all
+  #+end_src
+
+  For Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine
+            RUN apk del ${BUILD_REQUIREMENTS}              \
+                && rm --recursive --force /var/cache/apk/* \
+                && rm --recursive --force /tmp/*
+  #+end_src
+
+  Finally, for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian
+            RUN apt-get --auto-remove --quiet=2 purge ${BUILD_REQUIREMENTS} \
+                && rm -Rf /var/lib/apt/lists/*                              \
+                && rm -Rf /tmp/*
+  #+end_src
+
+* Listening port
+
+  Expose the previously specified listen port.
+
+  #+name: expose listening port
+  #+begin_src dockerfile :tangle no
+            EXPOSE ${SERVER_DISCOVERY_PORT}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<expose listening port>>
+  #+end_src
+
+   Export code for Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<expose listening port>>
+  #+end_src
+
+   Export code for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<expose listening port>>
+  #+end_src
+  #+html: </details>
+* Run as user
+
+  Specify the newly created user to run the starting command as.
+
+  #+name: run as user
+  #+begin_src dockerfile :tangle no
+            USER ${USERNAME}
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<run as user>>
+  #+end_src
+
+   Export code for Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<run as user>>
+  #+end_src
+
+   Export code for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<run as user>>
+  #+end_src
+  #+html: </details>
+
+* Volume exporting
+
+  Specifying the =certs/=  folder to export as  a volume since this  is the only
+  part that is not renewable without issues.
+
+  #+name: specify volume to export
+  #+begin_src dockerfile :tangle no
+            VOLUME ${USERHOME}/certs
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<specify volume to export>>
+  #+end_src
+
+   Export code for Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<specify volume to export>>
+  #+end_src
+
+   Export code for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<specify volume to export>>
+  #+end_src
+  #+html: </details>
+
+* Entrypoint and process control
+
+  Container runtimes usually don't allow  multiple entrypoints. We could use a
+  process control system to manage the spawning of multiple processes from one
+  single command but that's too overkill for this use case.
+
+  We'll use a simple POSIX shell script to handle this operation.
+
+** Discovery server start command
+
+   The below snippet is the discovery server start command with the previously
+   provided environment variables.
+
+   #+begin_src shell :shebang "#!/bin/sh" :tangle dist/entrypoint.sh
+     ${USERHOME}/server/discosrv                                                                       \
+         $([ "${SERVER_DEBUG}"        = "false"    ] || echo "-debug")                                 \
+         $([ "${SERVER_HTTP}"         = "false"    ] || echo "-http")                                  \
+         $([ "${SERVER_METRICS_PORT}" = "disabled" ] || echo "-metrics-listen ${SERVER_METRICS_PORT}") \
+         -listen         ":${SERVER_DISCOVERY_PORT}"                                                   \
+         -db-dir         "${USERHOME}/db/discosrv.db"                                                  \
+         -cert           "${USERHOME}/certs/cert.pem"                                                  \
+         -key            "${USERHOME}/certs/key.pem"                                                   \
+         ${SERVER_DISCOVERY_OPTS} &
+   #+end_src
+
+** Relay server start command
+
+   The below  snippet is the  relay server  start command with  the previously
+   provided environment variables.
+
+   #+begin_src shell :tangle dist/entrypoint.sh
+     ${USERHOME}/server/relaysrv                                                                 \
+         $([ "${SERVER_DEBUG}"      = "false"    ] || echo "-debug")                             \
+         $([ "{SERVER_STATUS_PORT}" = "disabled" ] || echo "-status-srv ${SERVER_METRICS_PORT}") \
+         -listen           ":${SERVER_RELAY_PORT}"                                               \
+         -global-rate      "${SERVER_RATE_GLOBAL}"                                               \
+         -per-session-rate "${SERVER_RATE_SESSION}"                                              \
+         -message-timeout  "${SERVER_MESSAGE_TIMEOUT}"                                           \
+         -network-timeout  "${SERVER_NETWORK_TIMEOUT}"                                           \
+         -ping-interval    "${SERVER_PING_INTERVAL}"                                             \
+         -provided-by      "${SERVER_PROVIDED_BY}"                                               \
+         -pools            "${SERVER_POOLS}"                                                     \
+         -keys             "${USERHOME}/certs/"                                                  \
+         ${SERVER_RELAY_OPTS} &
+   #+end_src
+
+** Waiting
+
+   Finally,  wait for  the  two  binaries to  end,  which theoretically  never
+   happens so this is just so the container doesn't quit prematurely.
+
+   #+begin_src shell :tangle dist/entrypoint.sh
+     wait
+   #+end_src
+
+* Entrypoint copying
+
+  This part copies the entrypoint script into the containers.
+
+  #+name: copy entrypoint script
+  #+begin_src dockerfile :tangle no
+            COPY entrypoint.sh ${USERHOME}/
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<copy entrypoint script>>
+  #+end_src
+
+   Export code for Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<copy entrypoint script>>
+  #+end_src
+
+   Export code for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<copy entrypoint script>>
+  #+end_src
+  #+html: </details>
+
+* Start command
+
+  Finally, specify the entrypoint script to spawn tho two servers.
+
+  #+name: entrypoint
+  #+begin_src dockerfile :tangle no
+            CMD ${USERHOME}/entrypoint.sh
+  #+end_src
+
+   #+html: <details>
+   #+html: <summary>Actual export happens here</summary>
+   #+html: <p></p>
+
+   Export code for Clear Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-clearlinux :noweb yes
+            <<entrypoint>>
+  #+end_src
+
+   Export code for Alpine Linux :
+
+  #+begin_src dockerfile :tangle dist/containerfile-alpine :noweb yes
+            <<entrypoint>>
+  #+end_src
+
+   Export code for Debian :
+
+  #+begin_src dockerfile :tangle dist/containerfile-debian :noweb yes
+            <<entrypoint>>
+  #+end_src
+  #+html: </details>
