@@ -1,8 +1,8 @@
 # -- BEGIN_METADATA ----------------------------------------------------------
 #+TITLE:        Syncthing containers
 #+TITLE:
-#+AUTHOR:       chaoticmurder
-#+EMAIL:        chaoticmurder.git@gmail.com
+#+AUTHOR:       scheatkode
+#+EMAIL:        scheatkode@gmail.com
 #+DESCRIPTION:  Syncthing relay & discovery containers for ease of deployment
 #+STARTUP:      latexpreview
 #+OPTIONS:      html-postamble:nil d:nil num:nil
@@ -52,15 +52,15 @@ resulting code.
    That being said, clone the repository.
 
    #+begin_src shell
-     git clone git@github.com:chaoticmurder/syncthing.git
-     git clone https://github.com/chaoticmurder/syncthing
+     git clone git@github.com:scheatkode/syncthing.git
+     git clone https://github.com/scheatkode/syncthing
    #+end_src
 
    Or if you prefer [[https://gitlab.com/][GitLab]].
 
    #+begin_src shell
-     git clone git@gitlab.com:chaoticmurder/syncthing.git
-     git clone https://gitlab.com/chaoticmurder/syncthing
+     git clone git@gitlab.com:scheatkode/syncthing.git
+     git clone https://gitlab.com/scheatkode/syncthing
    #+end_src
 
    Next step  is building the  container from one  of the provided  files. For

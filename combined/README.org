@@ -1,8 +1,8 @@
 # -- BEGIN_METADATA ----------------------------------------------------------
 #+TITLE:        Containerized Syncthing Relay & Discovery Server
 #+TITLE:
-#+AUTHOR:       chaoticmurder
-#+EMAIL:        chaoticmurder.git@gmail.com
+#+AUTHOR:       scheatkode
+#+EMAIL:        scheatkode@gmail.com
 #+DESCRIPTION:  A self installing Syncthing Relay & Discovery Server
 #+PROPERTY:     header-args :comments none :results output silent :padline no
 # -- END_METADATA -------------------------------------------------------------
